@@ -1,6 +1,7 @@
 #include <X11/X.h>
 #include <X11/Xlib.h>
 #include <stdlib.h>
+#include <string.h>
 #include <unistd.h>
 
 #include "linx.h"
@@ -31,18 +32,20 @@ linx_t *linx_init(int width, int height, const char *title) {
     return lx;
 }
 
-void linx_mainloop(linx_t *lx, void (*draw)(linx_t *)) {
+void linx_mainloop(linx_t *lx, void (*draw)(linx_t *), void (*handle_key)(linx_t *, XKeyEvent *)) {
     int running = 1;
 
     while(running) {
-        // while(XPending(lx->display)) {
+        while(XPending(lx->display)) {
             XEvent e;
             XNextEvent(lx->display, &e);
 
             if(e.type == KeyPress) {
-                running = 1; // TODO: handle key press
+                if(handle_key != NULL) {
+                    handle_key(lx, &e.xkey);
+                }
             }
-        // }
+        }
         linx_clear(lx);
 
         draw(lx);
@@ -66,6 +69,11 @@ void linx_drawline(linx_t *lx, int x1, int y1, int x2, int y2) {
 
 void linx_drawcircle(linx_t *lx, int x, int y, int radius) {
     XDrawArc(lx->display, lx->window, lx->gc, x, y, radius, radius, 0, 360*64);
+}
+
+void linx_string(linx_t *lx, int x, int y, const char *txt) {
+    size_t s = strlen(txt);
+    XDrawString(lx->display, lx->window, lx->gc, x, y, txt, s);
 }
 
 int linx_setcolor_rgb(linx_t *lx, unsigned short red, unsigned short green, unsigned short blue) {
